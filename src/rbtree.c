@@ -322,7 +322,6 @@ void transplant(rbtree *t, node_t *deleted_node, node_t *replaced_node) {
   else if (deleted_node == deleted_node->parent->right) {
     deleted_node->parent->right = replaced_node;
   }
-
   replaced_node->parent = deleted_node->parent;
 }
 
@@ -330,132 +329,90 @@ void rb_erase_fixup(rbtree *t, node_t *curr) {
   int replaced = 0;
 
   while (1) {
-    // 루트 노드라면
-    if (curr->parent == t->nil) {
+    // 현재 노드가 루트 노드이고 이미 루트 노드의 색이 검은색인 경우
+    if (curr->parent == t->nil && replaced == 1) {
       curr->color = RBTREE_BLACK;
       return;
     }
 
-    // red-and-black일 때는 black으로 변경한다
+    // 현재 노드의 색이 빨간색인 경우
     if (curr->color == RBTREE_RED) {
       curr->color = RBTREE_BLACK;
       return;
     }
 
-    node_t *sibiling;
-    // doubly black이 부모의 왼쪽 노드일 때
+    node_t *sibling;
+
+    // 현재 노드가 부모의 왼쪽 자식인 경우
     if (curr == curr->parent->left) {
-      sibiling = curr->parent->right;
+      sibling = curr->parent->right;
 
-      // case1
-      if (sibiling->color == RBTREE_RED) {
-        sibiling->color = RBTREE_BLACK;
+      // case1: 형제 노드의 색이 빨간색인 경우
+      if (sibling->color == RBTREE_RED) {
+        sibling->color = RBTREE_BLACK;
         curr->parent->color = RBTREE_RED;
-
-        // printf("case 1");
-        printf("시블링:%d \n", sibiling->key);
-
         left_rotate(t, curr->parent);
-      }
-
-      // case 2,3,4를 해결한다
-      // sibiling->color == RBTREE_BLACK일 때
-      // case2
-      if (sibiling->color == RBTREE_BLACK &&
-          sibiling->left->color == RBTREE_BLACK &&
-          sibiling->right->color == RBTREE_BLACK) {
-        // printf("case 2");
-        printf("시블링:%d \n", sibiling->key);
-        sibiling->color = RBTREE_RED;
-        curr = curr->parent;
-        replaced = 1;
-      }
-
-      // case3
-      else {
-        if (sibiling->left->color == RBTREE_RED &&
-            sibiling->right->color == RBTREE_BLACK) {
-          // printf("case 3");
-          printf("시블링:%d \n", sibiling->key);
-
-          sibiling->left->color = RBTREE_BLACK;
-          sibiling->color = RBTREE_RED;
-
-          right_rotate(t, sibiling);
+      } else {
+        // case2, case3, case4를 해결
+        if (sibling->color == RBTREE_BLACK &&
+            sibling->left->color == RBTREE_BLACK &&
+            sibling->right->color == RBTREE_BLACK) {
+          sibling->color = RBTREE_RED;
+          curr = curr->parent;
+          replaced = 1;
+          if (curr->color == RBTREE_BLACK) {
+            return;
+          }
+        } else {
+          if (sibling->left->color == RBTREE_RED &&
+              sibling->right->color == RBTREE_BLACK) {
+            sibling->left->color = RBTREE_BLACK;
+            sibling->color = RBTREE_RED;
+            right_rotate(t, sibling);
+          }
+          sibling->color = curr->parent->color;
+          curr->parent->color = RBTREE_BLACK;
+          sibling->right->color = RBTREE_BLACK;
+          left_rotate(t, curr->parent);
+          curr = t->root;
+          replaced = 1;
         }
-
-        // case4
-        sibiling->color = curr->parent->color;
-        curr->parent->color = RBTREE_BLACK;
-        sibiling->right->color = RBTREE_BLACK;
-
-        // printf("case 4");
-        printf("시블링:%d \n", sibiling->key);
-
-        // 부모를 기준으로 왼쪽 회전
-        left_rotate(t, curr->parent);
-
-        curr = t->root;
-        replaced = 1;
       }
     }
-
-    // doubly black이 부모의 오른쪽 노드일 때
+    // 현재 노드가 부모의 오른쪽 자식인 경우
     else {
-      sibiling = curr->parent->left;
+      sibling = curr->parent->left;
 
-      // case1
-      if (sibiling->color == RBTREE_RED &&
-          curr->parent->color == RBTREE_BLACK) {
-        // printf("case 1");
-        printf("시블링:%d \n", sibiling->key);
-        sibiling->color = RBTREE_BLACK;
+      // case1: 형제 노드의 색이 빨간색이고 부모 노드의 색이 검은색인 경우
+      if (sibling->color == RBTREE_RED && curr->parent->color == RBTREE_BLACK) {
+        sibling->color = RBTREE_BLACK;
         curr->parent->color = RBTREE_RED;
-
         right_rotate(t, curr->parent);
-      }
-
-      // case2,3,4를 해결한다.
-      // 즉 sibiling->color == RBTREE_BLACK일 떄이다
-      // case2
-      if (sibiling->color == RBTREE_BLACK &&
-          sibiling->left->color == RBTREE_BLACK &&
-          sibiling->right->color == RBTREE_BLACK) {
-        // printf("case 2");
-        printf("시블링:%d \n", sibiling->key);
-        sibiling->color = RBTREE_RED;
-
-        // printf("시블링 색깔 왜 안 변해");
-        // printf("%s", sibiling->color);
-        curr = curr->parent;
-        replaced = 1;
-      }
-
-      // case3
-      else {
-        if (sibiling->left->color == RBTREE_BLACK &&
-            sibiling->right->color == RBTREE_RED) {
-          // printf("case 3");
-          printf("시블링:%d \n", sibiling->key);
-          sibiling->left->color = RBTREE_BLACK;
-          sibiling->color = RBTREE_RED;
-
-          left_rotate(t, sibiling);
+      } else {
+        // case2, case3, case4를 해결
+        if (sibling->color == RBTREE_BLACK &&
+            sibling->left->color == RBTREE_BLACK &&
+            sibling->right->color == RBTREE_BLACK) {
+          sibling->color = RBTREE_RED;
+          curr = curr->parent;
+          replaced = 1;
+          if (curr->color == RBTREE_BLACK) {
+            return;
+          }
+        } else {
+          if (sibling->left->color == RBTREE_BLACK &&
+              sibling->right->color == RBTREE_RED) {
+            sibling->right->color = RBTREE_BLACK;
+            sibling->color = RBTREE_RED;
+            left_rotate(t, sibling);
+          }
+          sibling->color = curr->parent->color;
+          curr->parent->color = RBTREE_BLACK;
+          sibling->left->color = RBTREE_BLACK;
+          right_rotate(t, curr->parent);
+          curr = t->root;
+          replaced = 1;
         }
-
-        // case4
-
-        // printf("case 4");
-        printf("시블링:%d \n", sibiling->key);
-        sibiling->color = curr->parent->color;
-        curr->parent->color = RBTREE_BLACK;
-        sibiling->right->color = RBTREE_BLACK;
-
-        // 부모를 기준으로 왼쪽 회전
-        right_rotate(t, curr->parent);
-
-        curr = t->root;
-        replaced = 1;
       }
     }
   }
@@ -499,13 +456,11 @@ int rbtree_erase(rbtree *t, node_t *p) {
     deleted_color = replaced_node->color;
 
     // 선임자가 삭제될 노드의 오른쪽 자식인 경우
-    if (replaced_node->parent != curr) {
+    if (replaced_node->parent == curr) {
+      replaced_node->left->parent = replaced_node;
+    } else {
       transplant(t, replaced_node, replaced_node->left);
       replaced_node->left = curr->left;
-      replaced_node->left->parent = replaced_node;
-    }
-
-    else {
       replaced_node->left->parent = replaced_node;
     }
 
